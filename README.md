@@ -7,9 +7,10 @@ The availability of limited labeled data for supervised medical image segmentati
 This work can be cited as:
 Umapathy L, Brown T, M.B., Mushtaq R, Greenhill M, Lu J, Martin D, Altbach M, and Bilgin A. Reducing annotation burden in MR: A novel MR-contrast guided contrastive learning approach for image segmentation.
 
+![Figure1](https://github.com/lunastra26/multi-contrast-contrastive-learning/assets/60745251/400e6145-8ece-4ad8-9af0-8848a63005c5)
 
-Steps to train
-## Offline constraint map generation
+ 
+### Offline constraint map generation
 ***
 1) Identify an appropriate multi-contrast space for your downstream segmentation task: generate_constraint_maps.py
 Example: For segmentation tasks in T2-weighted images, use a set of co-registered MR images where MR contrast varies depending on underlying T2 such as multiple echo images with varying T2-weightings
@@ -20,14 +21,14 @@ With respect to BraTS dataset:
 
 2) Generate HDF5 files for image and corresponding constraint maps: generate_h5_pretraining.py
 
-## Constrained Contrastive Learning
+### Constrained Contrastive Learning
 ***
 Run constrained_contrastive_learning.py for pretrainining the DL model to embed MR constrast information
 - For segmentation tasks on anatomical regions i.e., regions with fixed spatial locations in the body such as liver/spleen, it is recommended to use patch size of 4x4 and warm start. The encoder can be pretrained with global contrastive learning, decoder with local contrastive learning for best results
 
  - For segmentation tasks on abnormal regions such as tumors or lesions that have no fixed spatial location in the body, it is recommended to partially train decoder in the pretraining task 
 
-## Finetune for downstream task
+### Finetune for downstream task
 ***
 1) For downstream segmentation tasks, use the pretrained model
 
