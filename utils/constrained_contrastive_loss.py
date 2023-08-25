@@ -19,7 +19,24 @@ class lossObj:
         self.contrastive_loss_type = cfg.contrastive_loss_type
         self.use_mask_sampling     = cfg.use_mask_sampling
     
-           
+
+    def cosine_similarity(self, vector_a, vector_b):
+        '''
+        Calculating cosine similarity between two vectors
+        '''     
+        norm_vector_a = tf.nn.l2_normalize(vector_a,axis=-1)
+        norm_vector_b = tf.nn.l2_normalize(vector_b,axis=-1)
+        cosine_similarity_val=tf.linalg.matmul(norm_vector_a,norm_vector_b,transpose_b=True)    
+        return cosine_similarity_val
+    
+    def get_softmax(self, sim_metric):
+        '''
+        Compute probability associated with a similarity metric
+        ''' 
+        prob = tf.math.exp(sim_metric/self.temperature )    
+        return prob
+
+    
     def calc_CCL_batchwise(self, y_true, y_pred):
         '''
         y_true: cluster_arr and mask
@@ -87,7 +104,7 @@ class lossObj:
 
         if (self.use_mask_sampling):
             cluster_arr, mask_arr = tf.split(cluster_arr,
-                                                num_or_size_splits=[2,1],
+                                                num_or_size_splits=2,
                                                 axis=-1)    
         if self.use_mask_sampling:                                                
             ''' identify the non-zero indices from mask to select random inputs'''
@@ -108,7 +125,7 @@ class lossObj:
                                                               memory_bank, 
                                                               cluster_arr)
                 curr_patch_loss = self.calculate_contrastive_loss(pos_prob, neg_prob)  
-                local_agg_loss = local_agg_loss +  curr_patch_loss 
+                local_loss = local_loss +  curr_patch_loss 
              
                     
             local_loss_image = local_loss/num_samples_loss_eval
@@ -133,13 +150,12 @@ class lossObj:
         positive and negative neighbors.
         '''
         topk        = self.topk
-        temperature = self.temperature
                          
         len_memory_bank = len(memory_bank)
         pcluster_arr_flat = cluster_arr 
 
-        all_dp_sim = cosine_similarity(memory_bank, curr_ip)
-        all_dp_probs = get_softmax(all_dp_sim, temperature)  
+        all_dp_sim = self.cosine_similarity(memory_bank, curr_ip)
+        all_dp_probs = self.get_softmax(all_dp_sim)  
         
         ''' top_k can only be applied along last dim '''
         bg_nei_sim, bg_nei_idx  = tf.nn.top_k(tf.transpose(all_dp_sim), k=topk+1, sorted = False)

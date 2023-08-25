@@ -3,19 +3,19 @@
 """
 @author: lavanya
 Main script for constrained contrastive learning
+Requires training data in HDF5 files with
+images ( N x H x W x Contrast dim)
+constraint maps (N x H x W x 1)
 """
 import sys
 
 import pathlib
 sys.path.append('./')
+
 import config.pretrain_config as cfg
-import utils as utils
+from utils.utils import setup_TF_environment, get_callbacks
 
-utils.setup_TF_environment(cfg.gpus_available)
-
-from tensorflow.keras import optimizers
-
-opShape = (cfg.img_size_x,cfg.img_size_y)
+setup_TF_environment(cfg.gpus_available)
 
 #%%  Load model    
 
@@ -50,8 +50,9 @@ val_gen = DataLoaderObj(cfg,
 
          
 #%% Import loss function and compile model
- 
-from constrained_contrastive_loss import lossObj
+from tensorflow.keras import optimizers
+from utils.constrained_contrastive_loss import lossObj
+
 loss = lossObj(cfg)
 customLoss = loss.calc_CCL_batchwise  
 AdamOpt = optimizers.Adam(learning_rate=cfg.lr_pretrain)
@@ -70,7 +71,7 @@ csvPath = wts_save_dir + 'training.log'
 
 #%% Create callbacks  
 
-callbacks = utils.get_callbacks(csvPath) 
+callbacks = get_callbacks(csvPath) 
 
 
 #%% Train the model

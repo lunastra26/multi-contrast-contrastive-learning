@@ -3,7 +3,7 @@
 """
 @author: lavanya
 Generate HDF5 files for pretraining  with the MR-contrast guided contrastive learning approach
-Script combined nii data with the constraint maps generated using generate_constraint_maps.py
+Script combines nii data with the constraint maps generated using generate_constraint_maps.py
 """
 
 import nibabel as nib
@@ -15,13 +15,10 @@ import sys
 import scipy.io as sio
 import csv
 
-sys.path.append('/clusterhome/lavanya/Code/Github_Private/myPythonUtils/')
-sys.path.append('/clusterhome/lavanya/Code/Backup_Oct22/brats_new/')
+sys.path.append('./')
 
 
-from myPythonUtils import myCrop3D
-from Data_preprocessing import contrastStretch
-
+from utils import myCrop3D, contrastStretch
  
 datadir            = '/file/location/here'   # location of pre-processed nii files for pretraining
 labeldir           = '/file/location/constraint_maps/'  # location of constraint maps for pretraining

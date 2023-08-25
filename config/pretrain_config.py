@@ -22,20 +22,18 @@ lr_pretrain    = 1e-3
 latent_dim     = 64
 initial_epoch  = 0
 num_epochs     = 150
-# settings for partial decoder
-partial_decoder    = 1
-partial_warm_start = 0
 
 # settings for full/partial decoder
-warm_start_enc     = 0
-warm_start_dec     = 0
+partial_decoder  = 1
+warm_start       = 0
+ 
 
 ''' Loss params'''  
 temperature           = 0.1
-patch_size            = 4
+patch_size            = 4  
 topk                  = 100
-num_samples_loss_eval = 20   # options are 10, 20, and 30
-contrastive_loss_type = 2   
+num_samples_loss_eval = 20    
+contrastive_loss_type = 2    # pairwise,   options are 1: setwise, 2: pairwise (recommended)
 use_mask_sampling     = 1
  
  

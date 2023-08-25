@@ -19,7 +19,7 @@ class DataLoaderObj(tensorflow.keras.utils.Sequence):
         self.contrast_idx = cfg.contrast_idx
         self.num_channels = len(self.contrast_idx)
         self.cfg = cfg
-        self.num_constraints = 2
+        self.num_constraints = 1
         self.num_clusters = cfg.num_samples_loss_eval
         self.train_flag = train_flag
         if train_flag:
@@ -34,14 +34,15 @@ class DataLoaderObj(tensorflow.keras.utils.Sequence):
         self.img = self.input_hdf5_img['img']
         self.param_cluster = self.input_hdf5_cluster['param']
        
-        if cfg.use_cluster_sampling:
+        if cfg.use_mask_sampling:
             self.num_constraints = self.num_constraints+1
            
         self.len_of_data = self.img.shape[0]
-        print('Total samples :', self.len_of_data)
+        self.num_samples = self.len_of_data // 1  # use it to control size of sampels per epoch
+        print('Total samples :', self.num_samples)
         self.img_size_x = self.img.shape[1]
         self.img_size_y = self.img.shape[2]
-        self.arr_indexes = np.random.choice(self.len_of_data,replace=True)
+        self.arr_indexes = np.random.choice(self.len_of_data, self.num_samples, replace=True)
        
     
     
@@ -58,7 +59,7 @@ class DataLoaderObj(tensorflow.keras.utils.Sequence):
     
     def on_epoch_end(self):
         'Updates indexes after each epoch'
-        self.arr_indexes = np.random.choice(self.len_of_data, replace=True)
+        self.arr_indexes = np.random.choice(self.len_of_data, self.num_samples, replace=True)
         
         
     def __shape__(self):

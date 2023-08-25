@@ -10,26 +10,25 @@ Umapathy L, Brown T, M.B., Mushtaq R, Greenhill M, Lu J, Martin D, Altbach M, an
 
 Steps to train
 ## Offline constraint map generation
-1) Identify an appropriate multi-contrast space for your downstream segmentation task. 
+***
+1) Identify an appropriate multi-contrast space for your downstream segmentation task: generate_constraint_maps.py
 Example: For segmentation tasks in T2-weighted images, use a set of co-registered MR images where MR contrast varies depending on underlying T2 such as multiple echo images with varying T2-weightings
 With respect to BraTS dataset:
-a) For segmentation tasks in T1-weighted images, generate constraints maps from T1 contrast images. e.g., [T1Gd, T1w]
-b) For segmentation tasks in T2-weighted images, generate constraints maps from T2 contrast images. e.g., [T2w, T2-FLAIR]
-c) For segmentation tasks in T1-weighted and T2-weighted images, generate constraints maps from T1 and T2 contrast images. e.g., [T1Gd, T1w, T2w, T2-FLAIR]
+- For segmentation tasks in T1-weighted images, generate constraints maps from T1 contrast images. e.g., [T1Gd, T1w]
+- For segmentation tasks in T2-weighted images, generate constraints maps from T2 contrast images. e.g., [T2w, T2-FLAIR]
+- For segmentation tasks in T1-weighted and T2-weighted images, generate constraints maps from T1 and T2 contrast images. e.g., [T1Gd, T1w, T2w, T2-FLAIR]
 
-2) Generate HDF5 files for image and corresponding constraint maps
+2) Generate HDF5 files for image and corresponding constraint maps: generate_h5_pretraining.py
 
 ## Constrained Contrastive Learning
+***
 Run constrained_contrastive_learning.py for pretrainining the DL model to embed MR constrast information
-1) For segmentation tasks on anatomical regions i.e., regions with fixed spatial locations in the body such as liver/spleen, 
-a) Recommended to use a Full decoder
-b) Recommended to use patch size of 4x4
-c) Recommended to use warm start: pretrain Encoder with global contrastive learning, decoder with local contrastive learning for best results
+- For segmentation tasks on anatomical regions i.e., regions with fixed spatial locations in the body such as liver/spleen, it is recommended to use patch size of 4x4 and warm start. The encoder can be pretrained with global contrastive learning, decoder with local contrastive learning for best results
 
-1) For segmentation tasks on abnormal regions such as tumors or lesions that have no fixed spatial location in the body
-a) Recommended to use a partial decoder
+ - For segmentation tasks on abnormal regions such as tumors or lesions that have no fixed spatial location in the body, it is recommended to partially train decoder in the pretraining task 
 
 ## Finetune for downstream task
+***
 1) For downstream segmentation tasks, use the pretrained model
 ### Remarks: The associated code will be released on acceptance of the manuscript
 
