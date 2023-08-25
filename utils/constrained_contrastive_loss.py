@@ -6,7 +6,6 @@ Constrained contrastive loss for MR contrast guided contrastive learning
 import numpy as np
 import tensorflow as tf
 
-from utils.loss_utils import *
 
 class lossObj:
     def __init__(self,cfg):
