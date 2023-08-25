@@ -16,8 +16,8 @@ import nibabel as nib
 from sklearn.decomposition import PCA
 
 
-sys.path.append('/clusterhome/lavanya/Code/Github_Private/myPythonUtils/')
-sys.path.append('/clusterhome/lavanya/Code/Backup_Oct22/')
+sys.path.append('./')
+ 
  
  
 from myPythonUtils import myCrop3D

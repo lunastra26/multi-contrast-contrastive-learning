@@ -30,6 +30,7 @@ Run constrained_contrastive_learning.py for pretrainining the DL model to embed 
 ## Finetune for downstream task
 ***
 1) For downstream segmentation tasks, use the pretrained model
+
 ### Remarks: The associated code will be released on acceptance of the manuscript
 
 

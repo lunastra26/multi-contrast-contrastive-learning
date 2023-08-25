@@ -20,6 +20,7 @@ setup_TF_environment(cfg.gpus_available)
 #%%  Load model    
 
 from utils.model_utils_gn import modelObj
+
 mm_utils = modelObj(cfg)
 
 if cfg.partial_decoder:
