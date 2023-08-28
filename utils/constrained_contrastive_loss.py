@@ -59,9 +59,10 @@ class lossObj:
     
     def calc_CCL_imagewise(self, ft_img, cluster_arr):
         ''' 
-        Function calculates CCL from random patch locations in cluster_arr
+        Function calculates constrained contrastive loss from random patch locations in cluster_arr
         ft_img     : Feature image from DL model e.g., \Psi(x) for x
         cluster_arr: class map for constraints
+        mask_arr   : contains random patch locations for loss calculations for each image. calculated a priori by setting use_mask_sampling in config
         patch_size : local neighborhood size over which features are averaged
         top_k      : number of background neighbors for relative sim calculation   
         contrastive_loss_type: 2 for pairwise (recommended), 1 for setwise
