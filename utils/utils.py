@@ -136,22 +136,6 @@ def calc_labelwise_dice_hd(y_true, y_pred, num_labels):
    
     return lbl_dice, lbl_hd
 
-    
-def calc_stats_v2(y_true, y_pred): 
-    if (y_true.any() and y_pred.any()):
-        HD_list = getHausdorff(y_true,y_pred)
-        Precision_list = calc_precision(y_true,y_pred)
-        Recall_list = calc_recall(y_true,y_pred)
-    elif (y_true.any() or y_pred.any()):        
-        HD_list = 200.0
-        Precision_list = 0
-        Recall_list = 0
-    else:
-        HD_list = 0.0
-        Precision_list = 1
-        Recall_list = 1
-        
-    return HD_list, Precision_list, Recall_list
 
 def preprocess_eval_mask_labels(mask):
     ''' generate evaluation labels to be consistent with the BraTS challenge
@@ -186,13 +170,11 @@ def performDenoising(ipImg, wts):
 
  
 def calc_precision(y_true, y_pred):
-    '''What proportion of positive identifications was actually correct?'''
     intersect = y_true * y_pred    
     precision = np.true_divide(intersect.sum(), y_pred.sum())
     return precision
 
 def calc_recall(y_true, y_pred):
-    '''What proportion of actual positives was identified correctly?'''
     intersect = y_true * y_pred    
     recall = np.true_divide(intersect.sum(), y_true.sum())
     return recall
