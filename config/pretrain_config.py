@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 """
 @author: lavanya
-Configuration file to control training parameters
+Configuration file to control training parameters: These configuration parameters are with respect to the segmentation tasks on multi-parametric BraTS dataset.
+Except loss params all other settings can be changed. Pretraining assumes hdf5 files for MR images/volumes and their respective constraint maps are already available.
 """
 
 gpus_available = '1'
@@ -27,7 +28,6 @@ num_epochs     = 150
 partial_decoder  = 1
 warm_start       = 0
  
-
 ''' Loss params'''  
 temperature           = 0.1
 patch_size            = 4  
