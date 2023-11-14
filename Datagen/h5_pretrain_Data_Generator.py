@@ -4,14 +4,14 @@ Data generator for pretraining with MR-contrast guided contrastive learning appr
 Given location of HDF5 files for images and the corresponding constraint maps, the datagenerator randomly selects images for training
 """
 
-import tensorflow.keras
+import tensorflow as tf
 import numpy as np
 from skimage.util import view_as_blocks
 import h5py
 import threading
 import tensorflow as tf
  
-class DataLoaderObj(tensorflow.keras.utils.Sequence):
+class DataLoaderObj(tf.keras.utils.Sequence):
     ''' Config cfg contains the parameters that control training'''
     def __init__(self, cfg, train_flag=True):        
         self.patch_size = cfg.patch_size
@@ -128,8 +128,7 @@ class DataLoaderObj(tensorflow.keras.utils.Sequence):
         return np.bincount(arr).argmax()
     
     def generate_indices_from_mask(self, mask):
-        ''' Returns a mask with random indices from a mask
-            for loss calculation
+        ''' Returns a mask with random indices from the brain/image for patchwise CCL loss calculation
         ''' 
         xDim, yDim = mask.shape
         mask_f = np.ndarray.flatten(mask.copy())

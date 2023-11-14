@@ -17,6 +17,7 @@ from skimage.restoration import denoise_tv_bregman as denoise_tv
 import os, natsort
 from sklearn.metrics import f1_score
 import os, logging
+ 
 
 def setup_TF_environment(gpus_available):
     os.environ['CUDA_VISIBLE_DEVICES'] = gpus_available
@@ -109,51 +110,13 @@ def load_img_labels_brats(opShape=(256,256), datadir=None, normalization='zmean'
     return imgs,labels
 
 
-def calc_labelwise_dice_hd(y_true, y_pred, num_labels):
-    from medPyUtils import hd95
-    lbl_dice = []
-    lbl_hd = []
-    ''' Exclude background from Dice calc '''
-    for idx in range(1,num_labels):
-        x1 = np.zeros(y_true.shape).astype(y_true.dtype)
-        x2 = np.zeros(y_true.shape).astype(y_true.dtype)
-        x1[y_true == idx] = 1
-        x2[y_pred == idx] = 1
-        if np.any(x1):
-            if np.any(x2):
-                lbl_hd.append(hd95(x2,x1))
-                lbl_dice.append(f1_score(x1.flatten(), x2.flatten(),  average='binary'))
-            else:
-                lbl_hd.append(200.0)
-                lbl_dice.append(f1_score(x1.flatten(), x2.flatten(),  average='binary'))
-        else:
-            if np.any(x2):
-                lbl_hd.append(200.0)
-                lbl_dice.append(f1_score(x1.flatten(), x2.flatten(),  average='binary'))
-            else:
-                lbl_hd.append(0.0)  
-                lbl_dice.append(1.0)
-   
-    return lbl_dice, lbl_hd
-
-
-def preprocess_eval_mask_labels(mask):
-    ''' generate evaluation labels to be consistent with the BraTS challenge
-    Label 1 : necrotic core
-    Label 2 : edema
-    Label 3: enhancing tumor
-    
-    '''
-    mask_TC = mask.copy()
-    mask_TC[mask_TC == 1] = 1
-    mask_TC[mask_TC == 2] = 1
-
-    mask_ET = mask.copy()
-    mask_ET[mask_ET == 1] = 0
-    mask_ET[mask_ET == 2] = 1
-    
-    eval_mask = mask = np.stack([mask_TC, mask_ET])    
-    return eval_mask
+def normalize_img_zmean(img, mask):
+    ''' Zero mean unit standard deviation normalization based on a mask'''
+    mask_signal = img[mask>0]
+    mean_ = mask_signal.mean()
+    std_ = mask_signal.std()
+    img = (img - mean_ )/ std_
+    return img
 
 
 def normalize_img(img):
@@ -167,19 +130,6 @@ def performDenoising(ipImg, wts):
     opImg = opImg *  max_val
     return opImg
 
-
- 
-def calc_precision(y_true, y_pred):
-    intersect = y_true * y_pred    
-    precision = np.true_divide(intersect.sum(), y_pred.sum())
-    return precision
-
-def calc_recall(y_true, y_pred):
-    intersect = y_true * y_pred    
-    recall = np.true_divide(intersect.sum(), y_true.sum())
-    return recall
-
-
 def get_callbacks(csvPath):
     callbacks = [ReduceLROnPlateau(monitor='val_loss',
                                 factor=0.5,
@@ -191,6 +141,7 @@ def get_callbacks(csvPath):
     
 def augmentation_function(images, labels_present=1, en_1hot=0):
     '''
+    Script adapted from Chaitanya et al. Global and local contrastive learning
     To generate affine augmented image,label pairs.
     ip params:
         ip_list: list of 2D slices of images and its labels if labels are present
@@ -290,50 +241,8 @@ def augmentation_function(images, labels_present=1, en_1hot=0):
         return sampled_image_batch
  
 
-
-def calc_f1_score(gt_mask,predictions_mask):
-    y_pred= predictions_mask.flatten()
-    y_true= gt_mask.flatten()
-
-    f1_val= f1_score(y_true, y_pred, average=None)
-
     return f1_val
-
-def getHausdorff(y_true, y_pred):
-    import SimpleITK as sitk
-    import scipy
-    testImage = sitk.GetImageFromArray(y_true.astype('uint8'))
-    resultImage = sitk.GetImageFromArray(y_pred.astype('uint8'))
-    
-    """Compute the Hausdorff distance."""
-    
-    # Hausdorff distance is only defined when something is detected
-    resultStatistics = sitk.StatisticsImageFilter()
-    resultStatistics.Execute(resultImage)
-    if resultStatistics.GetSum() == 0:
-        return float('nan')
-
-    eTestImage   = sitk.BinaryErode(testImage, (1,1,0) )
-    eResultImage = sitk.BinaryErode(resultImage, (1,1,0) )
-    
-    hTestImage   = sitk.Subtract(testImage, eTestImage)
-    hResultImage = sitk.Subtract(resultImage, eResultImage)    
-    
-    hTestArray   = sitk.GetArrayFromImage(hTestImage)
-    hResultArray = sitk.GetArrayFromImage(hResultImage)   
-    testCoordinates   = [testImage.TransformIndexToPhysicalPoint(x.tolist()) for x in np.transpose( np.flipud( np.nonzero(hTestArray) ))]
-    resultCoordinates = [testImage.TransformIndexToPhysicalPoint(x.tolist()) for x in np.transpose( np.flipud( np.nonzero(hResultArray) ))]      
-    # Use a kd-tree for fast spatial search
-    def getDistancesFromAtoB(a, b):    
-        kdTree = scipy.spatial.KDTree(a, leafsize=100)
-        return kdTree.query(b, k=1, eps=0, p=2)[0]
-    
-    # Compute distances from test to result; and result to test
-    dTestToResult = getDistancesFromAtoB(testCoordinates, resultCoordinates)
-    dResultToTest = getDistancesFromAtoB(resultCoordinates, testCoordinates)    
-    
-    return max(np.percentile(dTestToResult, 95), np.percentile(dResultToTest, 95))
-    
+ 
 def augmentation_function_mc(images, labels, en_1hot=0):
     '''
     Script adapted from Chaitanya et al. Global and local contrastive learning

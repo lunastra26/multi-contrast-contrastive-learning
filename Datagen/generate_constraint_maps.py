@@ -14,24 +14,60 @@ from sklearn.cluster import MiniBatchKMeans
 import sys, numpy as np
 import nibabel as nib
 from sklearn.decomposition import PCA
-
+import argparse
 
 sys.path.append('./')
+  
+from utils.utils import myCrop3D
+from utils.utils import  performDenoising
+from utils.utils import contrastStretch, normalize_img
  
+def main():
+    description_txt = 'Constraint map generation for CCL'
+    parser = argparse.ArgumentParser(description=description_txt)
+    parser.add_argument("--save_dir", type=str, default=None,
+                    help="/output/file/location/for/Constraint_maps/")
+    parser.add_argument("--data_dir", type=str, default=None,
+                    help="/input/nitfi/data/location/here")
+    parser.add_argument("--opShape", type=int, default=160,
+                    help="Matrix size X (Int)(Default 160)" )
+    parser.add_argument("--numCluster", type=int, default=20,
+                    help="NUmber of clusters for Kmeans (Int)(Default 20)" )
+    parse_cfg = parser.parse_args()
+    if parse_cfg.data_dir ==None:
+        raise ValueError('An input data directory must be provided')
+    if parse_cfg.save_dir ==None:
+        raise ValueError('An output data directory must be provided to save constraint maps')
+    generate_constraint_maps_batch(parse_cfg)
+
+def generate_constraint_maps_batch(parse_cfg):
+    ''' 
+    Generates constraint maps for each subject (arranged in a separate folder)
+    and saves constraint maps as mat files    
+    '''
+    datadir = parse_cfg.data_dir                                    # location of pre-processed nii files for pretraining
+    num_param_clusters = parse_cfg.numCluster                       # number of clusters for Kmeans, 20 or 30 work well
+    opShape = (parse_cfg.opShape,parse_cfg.opShape)                 # output image shape for pretraining
+    save_base_dir = parse_cfg.save_dir
+
+    sub_list = natsort.natsorted(os.listdir(datadir))     
  
- 
-from myPythonUtils import myCrop3D
-from dataloader_utils import  performDenoising
-from Data_preprocessing import contrastStretch
+    # Generate constraint maps for each subject in the training list
+    for subName in sub_list:
+        print('Subject ', subName)  
+        try:
+            save_dir = os.path.join(save_base_dir, subName)
+            img   = load_unl_brats_img(datadir, subName, opShape)
+            print('Generating parametric cluster for K=', num_param_clusters)
+            kp = generate_parametric_clusters(img, num_cluster=num_param_clusters, random_state=0) 
+            pathlib.Path(save_dir).mkdir(parents=True, exist_ok=True)
+            temp = {}
+            temp['param'] = kp
+            save_str = '/Constraint_map_' + str(num_param_clusters) + '.mat'
+            sio.savemat(os.path.join(save_dir,save_str), temp)
+        except:
+            print('An exception occured here')
 
-dataset            = 'brats'  # dataset
-datadir            = '/file/location/here'   # location of pre-processed nii files for pretraining
-num_param_clusters = 20
-opShape            = (160,160)   # output image shape
-
-save_base_dir = '/output/file/location/here/Constraint_maps/'
-
-sub_list = natsort.natsorted(os.listdir(datadir))      
 
 def generate_parametric_clusters(parameter_volume, num_cluster=10, random_state=0,num_PC_2retain=4):
     '''
@@ -42,9 +78,13 @@ def generate_parametric_clusters(parameter_volume, num_cluster=10, random_state=
     Input: Parameter volume (4D) HxWxDxT or (3D) HxWxT where T is the contrast dimension
     Output: Parameter constraint map
     ''' 
-    xDim, yDim, zDim, tDim = parameter_volume.shape             
-    mask = np.zeros(parameter_volume[...,0].shape)    # optional to generate a mask to avoid including background in constraint maps
-    mask[parameter_volume[...,0] > 0] = 1
+    assert len(parameter_volume) == 4
+    
+    xDim, yDim, zDim, tDim = parameter_volume.shape   
+
+    ''' Optional: Use this section to generate a brain mask to avoid including background'''         
+    # mask = np.zeros(parameter_volume[...,0].shape)    # optional to generate a mask to avoid including background in constraint maps
+    # mask[parameter_volume[...,0] > 0] = 1
     
     
     ''' Perform PCA decomposition'''
@@ -55,17 +95,14 @@ def generate_parametric_clusters(parameter_volume, num_cluster=10, random_state=
 
     ''' Denoise PC images using TV'''
     for idx in range(num_PC_2retain):            
-        temp_pc[...,idx] = mask * performDenoising(temp_pc[...,idx], wts=40)
+        temp_pc[...,idx] = performDenoising(temp_pc[...,idx], wts=40)
+        # temp_pc[...,idx] = mask * performDenoising(temp_pc[...,idx], wts=40)
         
-    img_blk_vec = np.reshape(temp_pc, (-1,tDim))
+    img_blk_vec = np.reshape(temp_pc, (-1,num_PC_2retain))
     kmeans = MiniBatchKMeans(n_clusters=num_cluster, random_state=random_state).fit(img_blk_vec)
     class_labels_vec = kmeans.labels_
     param_clusters = np.reshape(class_labels_vec, (xDim,yDim,zDim))               
     return param_clusters
-
-def normalize_img(img):
-    img = (img - img.min())/(img.max()-img.min())
-    return img 
 
 ''' Use an appropriate dataloader to load multi-contrast training data
     Example here is for the brain tumor segmentation dataset'''
@@ -88,16 +125,10 @@ def load_unl_brats_img(datadir, subName, opShape):
         sub_img.append(temp)
     sub_img = np.stack((sub_img), axis=-1)
     return  sub_img 
+ 
 
-# Generate constraint maps for each subject in the training list
-for subName in sub_list:
-    print('Subject ', subName)  
-    save_dir = os.path.join(save_base_dir, subName)
-    img   = load_unl_brats_img(datadir, subName, opShape)
-    print('Generating parametric cluster for K=', num_param_clusters)
-    kp = generate_parametric_clusters(img, num_cluster=num_param_clusters, random_state=0) 
-    pathlib.Path(save_dir).mkdir(parents=True, exist_ok=True)
-    temp = {}
-    temp['param'] = kp
-    save_str = '/Constraint_map_' + str(num_param_clusters) + '.mat'
-    sio.savemat(os.path.join(save_dir,save_str), temp)
+if __name__ == "__main__":
+    print('Running generate_constraint_maps.py')
+    main()
+
+ 

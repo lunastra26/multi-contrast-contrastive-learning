@@ -18,7 +18,9 @@ import csv
 sys.path.append('./')
 
 
-from utils import myCrop3D, contrastStretch
+from utils.utils import myCrop3D
+from utils.utils import contrastStretch
+from utils.utils import normalize_img, normalize_img_zmean
  
 datadir            = '/file/location/here'   # location of pre-processed nii files for pretraining
 labeldir           = '/file/location/constraint_maps/'  # location of constraint maps for pretraining
@@ -28,19 +30,6 @@ contrast_type      = 'contrast_name_here'
 opShape            = (160,160)
 zmean_norm         = True   # perform zero mean unit std normalization, suited for multi-parametric multi-contrast data
 num_param_cluster  = '20'
-
-
-def normalize_img(img):
-    img = (img - img.min())/(img.max()-img.min())
-    return img
-
-def normalize_img_zmean(img, mask):
-    ''' Zero mean unit standard deviation normalization based on a mask'''
-    mask_signal = img[mask>0]
-    mean_ = mask_signal.mean()
-    std_ = mask_signal.std()
-    img = (img - mean_ )/ std_
-    return img
 
 
 ''' Use an appropriate dataloader to load multi-contrast training data
@@ -55,7 +44,6 @@ def load_unl_brats_img(datadir, subName, opShape):
         temp = nib.load(datadir + subName + '/' + subName + suffix)
         temp = np.rot90(temp.get_fdata(),-1)
         temp = myCrop3D(temp, opShape)
-        temp = normalize_img(temp)
         # generate a brain mask from the first volume. If mask is available, skip this step
         if suffix == data_suffix[0]:  
             mask = np.zeros(temp.shape)
@@ -96,6 +84,12 @@ else:
 constraintmap_h5py_filename = save_dir + datatype + '_' + contrast_type + '_pretrain_constraint_map.hdf5'  
 
 #%% Generate training and validation files with NxHxWxT for image and HxWxDx1 for constraint maps
+''' 
+The following section process 30 subjects at a time.
+This section can be replaced by any script that generates training h5 files with
+'img' as N x Height x Width x Channels (float64)
+'param' as N x Height x Width x 1       (int64)
+'''
 
 ctr = 0 
 init_Flag = True   

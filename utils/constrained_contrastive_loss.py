@@ -10,13 +10,14 @@ import tensorflow as tf
 class lossObj:
     def __init__(self,cfg):
         self.patch_size            = cfg.patch_size   # 4 is recommended
-        self.topk                  = cfg.topk
+        self.topk                  = cfg.topk         
         self.num_samples_loss_eval = cfg.num_samples_loss_eval
         self.temperature           = cfg.temperature
         self.batch_size            = cfg.batch_size
         self.partial_decoder       = cfg.partial_decoder
         self.contrastive_loss_type = cfg.contrastive_loss_type
         self.use_mask_sampling     = cfg.use_mask_sampling
+        self.epsilon               =  1e-7
     
 
     def cosine_similarity(self, vector_a, vector_b):
@@ -39,7 +40,7 @@ class lossObj:
     def calc_CCL_batchwise(self, y_true, y_pred):
         '''
         y_true: cluster_arr and mask
-                y_true[...,0] cluster: class clusters of regions consistent with constraints
+                y_true[...,0] cluster: cluster map or constraint map for the slice/volume of interest
                 y_true[...,1]  mask: random patches for loss evaluation
         y_pred: Feature maps in the representational space
         Returns
@@ -74,7 +75,7 @@ class lossObj:
 
             
         if partial_decoder:
-            ''' Note that constraint maps are already downsampled patch size x patch size as they retain max class value per patch
+            ''' Note that constraint maps are already downsampled patch size x patch size (datagenerator) as they retain max class value per patch
                 On using partial decoder, a 1x1 patch in the output feature map corresponds to 4x4 in the full decoder'''
             patch_size=1   
         
@@ -137,7 +138,7 @@ class lossObj:
     
     def get_nei_probability(self, curr_ip, ip_idx, memory_bank, cluster_arr):
         '''
-        For an input location, calculate its positive and negative set of neighbors
+        For an input location, calculate its positive and negative set of neighbors and their probabilities
         Parameters
         ----------
         ip_idx : int
@@ -153,7 +154,7 @@ class lossObj:
                          
         len_memory_bank = len(memory_bank)
         pcluster_arr_flat = cluster_arr 
-
+        ''' calculate similarity for all data points'''
         all_dp_sim = self.cosine_similarity(memory_bank, curr_ip)
         all_dp_probs = self.get_softmax(all_dp_sim)  
         
@@ -162,8 +163,7 @@ class lossObj:
         bg_nei_sim = tf.transpose(bg_nei_sim)
         bg_nei_idx = tf.transpose(bg_nei_idx)
    
-      
-        ''' Get background neighbors''' 
+        ''' Get background similar neighbors''' 
         tf_tensor = tf.zeros_like(all_dp_probs, dtype=tf.bool) 
         tf_updates = tf.ones_like(bg_nei_idx, dtype=tf.bool)
         bg_neighbors = tf.tensor_scatter_nd_update(tf_tensor, bg_nei_idx, tf_updates)
@@ -188,15 +188,14 @@ class lossObj:
             pos_prob = tf.reduce_sum(pos_prob)
             neg_prob = tf.reduce_sum(neg_prob)
             relative_probability =  pos_prob/(pos_prob + neg_prob)
-            curr_loss = -tf.reduce_mean(tf.math.log(relative_probability + 1e-7))
+            curr_loss = -tf.reduce_mean(tf.math.log(relative_probability + self.epsilon))
         elif loss_type == 2:
             '''pairwise contrastive loss : RECOMMENDED'''
             # print('pairwise')           
             neg_prob = tf.reduce_sum(neg_prob)
             den_term = pos_prob + neg_prob
             relative_probability = tf.divide(pos_prob, den_term)
-            # print(relative_probability.numpy())
-            curr_loss = -tf.reduce_mean(tf.math.log(relative_probability + 1e-7)) 
+            curr_loss = -tf.reduce_mean(tf.math.log(relative_probability + self.epsilon)) 
         return curr_loss
    
     def sample_input_patches(self, num_patches, mask=None, exclude_num=3):

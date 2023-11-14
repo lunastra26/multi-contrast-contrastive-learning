@@ -5,7 +5,8 @@
 
 import tensorflow as tf
 from tensorflow.keras import Input, Model
-from tensorflow.keras.layers import Conv2D, Dense, UpSampling2D, Softmax  
+from tensorflow.keras.layers import Conv2D, Dense
+from tensorflow.keras.layers import UpSampling2D, Softmax  
 from tensorflow.keras.layers import Concatenate, Activation
 from tensorflow.keras.layers import Flatten 
 from tensorflow.keras.layers import MaxPooling2D
@@ -62,7 +63,7 @@ class modelObj:
     
     def encoder_network(self, encoder_list_return=0, inputs=None, add_PH=False, 
                         name='enc_model'):
-        ''' Define the encoder network '''
+        ''' Define the encoder network: Encoder architecture similar to Global Local CL by Chaitanya et al.'''
         no_filters = self.no_filters
         #layers list for skip connections
         enc_layers_list=[]
@@ -88,11 +89,10 @@ class modelObj:
         enc_layers_list.append(enc_c4)
         enc_layers_list.append(enc_c5)
         
-        '''Encoder network with a non-linear projection head (MLP)'''
+
         if add_PH:
+            '''Encoder network with a non-linear projection head (MLP)'''
             PH_flat = Flatten()(enc_c6)
-        
-            ''' Add PH '''
             PH_a = Dense(1024, name = 'PH_a', activation='relu', use_bias=False)(PH_flat)
             PH_b = Dense(128, name = 'PH_b', activation=None, use_bias=False)(PH_a) 
             model = Model(inputs=[inputs], outputs=[PH_b], name=name)
@@ -104,9 +104,7 @@ class modelObj:
         else:
         
             return model
-        
-        return model
-
+      
     def encoder_decoder_network(self, num_dec_levels=5, enc_pretr_wts=None, 
                                 enc_freeze=False, add_PH=False, name='dec_model', PH_str = ''):
         
@@ -129,9 +127,9 @@ class modelObj:
             layer_idx = layer_idx-1
             tmp_dec = self.decoder_block_expand(tmp_dec, no_filters[layer_idx], enc_layers_list[layer_idx-1], block_name=layer_idx)
         
-        '''Decoder network with a non-linear projection head (MLP)'''
+        
         if add_PH:  
-               
+            '''Decoder network with a non-linear projection head (MLP)'''
             PH_A = Conv2D(latent_dim,(1,1),padding='same', use_bias=False, name='PH_A_conv1'+PH_str, kernel_initializer=self.kernel_init)(tmp_dec)        
             PH_A = GroupNormalization(groups = num_groups, name = 'PH_A_bn1'+PH_str)(PH_A)
             PH_A = Activation('relu', name = 'PH_A_act1'+PH_str)(PH_A)
@@ -149,6 +147,7 @@ class modelObj:
         return enc_dec
     
     def seg_unet(self, num_classes):
+        'Network for downstream segmentation tasks'
         no_filters = self.no_filters  
         inputs = Input((self.img_size_x, self.img_size_y, self.num_channels))
 
