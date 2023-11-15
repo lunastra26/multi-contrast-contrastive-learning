@@ -26,7 +26,7 @@ Other examples with respect to Brain Tumor Segmentation (BraTS) dataset:
 ### Constrained Contrastive Learning
 ***
 Pretrainining the DL model to embed MR constrast information: run **constrained_contrastive_learning.py**
-- For segmentation tasks on anatomical regions i.e., regions with fixed spatial locations in the body such as liver/spleen, it is recommended to use patch size of 4x4 and warm start. The encoder can be pretrained with global contrastive learning, and the full decoder can be pretrained with constrained contrastive learning.
+- For segmentation tasks on anatomical regions i.e., regions with fixed spatial locations in the body such as liver/spleen, it is recommended to use patch size of 4x4 and warm start. The encoder can be pretrained with global contrastive learning (optional with pretrain_global_contrastive_learning.py), and the full decoder can be pretrained with constrained contrastive learning.
 
  - For segmentation tasks such as tumors or lesion detection that have no fixed spatial location in the body, it is recommended to partially train decoder with constrained contrastive learning  
 
