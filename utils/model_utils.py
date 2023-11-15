@@ -43,7 +43,7 @@ class modelObj:
         return down
 
     def decoder_block_expand(self, block_input, numFts, concat_block, upsample_flag=True, block_name=1):
-        # Defining a UNET block in the feature upsampling path
+        '''Defining a UNET block in the feature upsampling path '''
         conv_kernel = self.conv_kernel
         num_groups = numFts // 4
         if upsample_flag:
@@ -61,35 +61,29 @@ class modelObj:
         return up
 
     
-    def encoder_network(self, encoder_list_return=0, inputs=None, add_PH=False, 
+    def encoder_network(self, inputs=None, list_return=0, add_PH=False, 
                         name='enc_model'):
         ''' Define the encoder network: Encoder architecture similar to Global Local CL by Chaitanya et al.'''
         no_filters = self.no_filters
         #layers list for skip connections
-        enc_layers_list=[]
+        layers_list=[]
         # Level 1
-        if inputs is None:
+        if inputs == None:
             inputs = Input((self.img_size_x, self.img_size_y, self.num_channels))
             
         enc_c1 = self.encoder_block_contract(inputs, no_filters[1], pool_flag=False, block_name=1)
-        # Level 2
         enc_c2 = self.encoder_block_contract(enc_c1, no_filters[2], block_name=2)
-        # Level 3
         enc_c3 = self.encoder_block_contract(enc_c2, no_filters[3], block_name=3)
-        # Level 4
         enc_c4 = self.encoder_block_contract(enc_c3, no_filters[4], block_name=4)
-        # Level 5 - 2x Conv
         enc_c5 = self.encoder_block_contract(enc_c4, no_filters[5], block_name=5)
-        # Level 6 - 2x Conv
         enc_c6 = self.encoder_block_contract(enc_c5, no_filters[5], block_name=6)
         
-        enc_layers_list.append(enc_c1)
-        enc_layers_list.append(enc_c2)
-        enc_layers_list.append(enc_c3)
-        enc_layers_list.append(enc_c4)
-        enc_layers_list.append(enc_c5)
+        layers_list.append(enc_c1)
+        layers_list.append(enc_c2)
+        layers_list.append(enc_c3)
+        layers_list.append(enc_c4)
+        layers_list.append(enc_c5)
         
-
         if add_PH:
             '''Encoder network with a non-linear projection head (MLP)'''
             PH_flat = Flatten()(enc_c6)
@@ -99,10 +93,9 @@ class modelObj:
         else:       
             model = Model(inputs=[inputs], outputs=[enc_c6], name=name)
        
-        if(encoder_list_return==1):
-            return model, enc_layers_list
+        if(list_return==1):
+            return model, layers_list
         else:
-        
             return model
       
     def encoder_decoder_network(self, num_dec_levels=5, enc_pretr_wts=None, 
@@ -112,8 +105,7 @@ class modelObj:
         latent_dim = self.latent_dim   
         num_groups = latent_dim // 4        
         inputs = Input((self.img_size_x, self.img_size_y, self.num_channels))
-        encoder_list_return=1
-        enc_model,enc_layers_list  = self.encoder_network(encoder_list_return, inputs)
+        enc_model,enc_layers_list  = self.encoder_network(inputs,list_return=1)
         
         if enc_pretr_wts is not None:
             print('Loading pretrained_weights for encoder, matching by name')

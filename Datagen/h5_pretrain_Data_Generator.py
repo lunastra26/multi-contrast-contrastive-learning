@@ -69,13 +69,10 @@ class DataLoaderObj(tf.keras.utils.Sequence):
     def __getitem__(self, idx):
         """Returns tuple (input, target) correspond to batch #idx."""
         with threading.Lock():
-            # Generate indices of the batch
             i = self.arr_indexes[idx * self.batch_size : (idx + 1) * self.batch_size]    
             x_train = self.generate_X(i)
-            y_train = self.generate_clusters(i)
-            x_train = tf.identity(x_train)
-            y_train = tf.identity(y_train)              
-            return x_train, y_train
+            y_train = self.generate_clusters(i)         
+            return tf.identity(x_train), tf.identity(y_train)
         
     def generate_X(self, list_idx):    
         X = np.zeros((self.batch_size, self.img_size_x, self.img_size_y, self.num_channels),dtype="float64")

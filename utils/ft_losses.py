@@ -6,7 +6,6 @@ Loss functions for segmentation tasks
  
 import tensorflow as tf
 import numpy as np
-from tensorflow.keras.losses import binary_crossentropy as bce
 
 class lossObj:
     def __init__(self):
