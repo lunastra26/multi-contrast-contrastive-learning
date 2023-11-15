@@ -76,6 +76,29 @@ def myCrop3D(ipImg,opShape):
         opImg[x_lwr:xDim - x_upr,:,:] = temp_opImg
     return opImg
 
+def load_unl_brats_img(datadir, subName, opShape, zmean_norm=1): 
+    ''' Loads a 4D volume from the brats dataset HxWxDxT where the contrasts are [T1Gd, T2w, T1w, T2-FLAIR]'''
+    print('Loading MP-MR images for ', subName)
+    data_suffix = ['_t1ce.nii.gz', '_t2.nii.gz', '_t1.nii.gz' , '_flair.nii.gz']
+    sub_img = []
+    for suffix in data_suffix:
+        temp = nib.load(datadir + subName + '/' + subName + suffix)
+        temp = np.rot90(temp.get_fdata(),-1)
+        temp = myCrop3D(temp, opShape)
+        # generate a brain mask from the first volume. If mask is available, skip this step
+        if suffix == data_suffix[0]:  
+            mask = np.zeros(temp.shape)
+            mask[temp > 0] = 1
+        # histogram based channel-wise contrast stretching
+        temp = contrastStretch(temp, mask, 0.01, 99.9)
+        if zmean_norm:
+            temp = normalize_img_zmean(temp, mask)
+        else:
+            temp = normalize_img(temp)
+        sub_img.append(temp)
+    sub_img = np.stack((sub_img), axis=-1)
+    return  sub_img 
+
 def load_img_labels_brats(opShape=(256,256), datadir=None, normalization='zmean'):
     ''' Load image and label pairs from the BraTS dataset'''
     wd = natsort.natsorted(os.listdir(datadir))       

@@ -27,10 +27,9 @@ num_epochs     = 150
 
 # settings for full/partial decoder
 '''
-Note: 
+Note: Training a partial decoder allows more free weights for the finetuning task
 Set partial_decoder to 0 for downstream multi-organ segmentation tasks
 Set partial_decoder to 1 for general downstream segmentation tasks e.g., tumor
-Training a partial decoder allows more free weights for finetuning task
 '''
 
 partial_decoder  = 1

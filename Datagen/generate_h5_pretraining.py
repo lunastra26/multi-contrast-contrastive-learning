@@ -1,9 +1,10 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 @author: lavanya
-Generate HDF5 files for pretraining  with the MR-contrast guided contrastive learning approach
+Provides example script to generate HDF5 files for pretraining  with the MR-contrast guided contrastive learning approach
 Script combines nii data with the constraint maps generated using generate_constraint_maps.py
+This section can be replaced by any script that generates training h5 files with
+'img' as N x Height x Width x Channels (float64)
+'param' as N x Height x Width x 1       (int64)
 """
 
 import nibabel as nib

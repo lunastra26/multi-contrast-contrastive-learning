@@ -1,6 +1,10 @@
 """
 @author: lavanya
 Constrained contrastive loss for MR contrast guided contrastive learning
+For randomly sampled patch locations in an input image, the loss function first identifies
+1) top 100 similar patches in the representational space using cosine similarity (background neighbors)
+2) patches that share the same class in the constraint map as the patch of interest (close neighbors)
+The intersection of the two sets form the positive examples for constrained contrastive learning.
 """
 
 import numpy as np
@@ -9,10 +13,10 @@ import tensorflow as tf
 
 class lossObj:
     def __init__(self,cfg):
-        self.patch_size            = cfg.patch_size   # 4 is recommended
-        self.topk                  = cfg.topk         
+        self.patch_size            = cfg.patch_size    
+        self.topk                  = cfg.topk           
         self.num_samples_loss_eval = cfg.num_samples_loss_eval
-        self.temperature           = cfg.temperature
+        self.temperature           = cfg.temperature   
         self.batch_size            = cfg.batch_size
         self.partial_decoder       = cfg.partial_decoder
         self.contrastive_loss_type = cfg.contrastive_loss_type
@@ -45,7 +49,7 @@ class lossObj:
         y_pred: Feature maps in the representational space
         Returns
         -------
-        Local constrained contrastive loss
+        Local constrained contrastive loss per batch
         '''
         batch_size = self.batch_size
         batch_la_loss=0.0
@@ -60,12 +64,13 @@ class lossObj:
     
     def calc_CCL_imagewise(self, ft_img, cluster_arr):
         ''' 
-        Function calculates constrained contrastive loss from random patch locations in cluster_arr
+        Function calculates constrained contrastive loss from random patch locations in cluster_arr within an image
         ft_img     : Feature image from DL model e.g., \Psi(x) for x
-        cluster_arr: class map for constraints
+        cluster_arr : consists of [cluster_arr, mask_arr] concatenated along axis=-1
+        cluster_arr: class map for constraints. 
         mask_arr   : contains random patch locations for loss calculations for each image. calculated a priori by setting use_mask_sampling in config
         patch_size : local neighborhood size over which features are averaged
-        top_k      : number of background neighbors for relative sim calculation   
+        top_k      : number of background neighbors for relative similarity calculation   
         contrastive_loss_type: 2 for pairwise (recommended), 1 for setwise
         '''
     
@@ -141,14 +146,13 @@ class lossObj:
         For an input location, calculate its positive and negative set of neighbors and their probabilities
         Parameters
         ----------
-        ip_idx : int
-            DESCRIPTION.
-        memory_bank : tensor num patches x 1
-            DESCRIPTION.
-        cluster_arr : cluster constraints
+        curr_ip : current input patch  
+        ip_idx : index of the current input patch  
+        memory_bank : tensor containing all non-overlapping patches in an image  
+        cluster_arr : cluster constraints - contains constraint map for the current image
         Returns
         -------
-        positive and negative neighbors.
+        probabilities for the positive and negative neighbors identitifed through constrained contrastive learning
         '''
         topk        = self.topk
                          
@@ -215,8 +219,7 @@ class lossObj:
 
     
     def get_mask_indices(self, mask):
-        ''' Returns the indices where mask is set to 1 '''
-                    
+        ''' Returns the indices where mask is set to 1 '''             
         nnz_indexes = tf.cast(tf.where(tf.greater(tf.squeeze(mask),0)), tf.int32)
         return tf.squeeze(nnz_indexes) 
  
